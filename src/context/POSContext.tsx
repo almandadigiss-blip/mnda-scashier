@@ -84,16 +84,27 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
 
-  const BANNED_CATEGORIES = ['alat tulis', 'buku', 'home decor'];
-  const isBanned = (catName: string) => BANNED_CATEGORIES.includes((catName || '').trim().toLowerCase());
+  const BANNED_CATEGORIES = ['alat tulis', 'buku', 'home decor', 'perlengkapan'];
+  const isBannedCategory = (catName: string) =>
+    BANNED_CATEGORIES.some((b) => (catName || '').trim().toLowerCase().includes(b));
 
-  // LocalStorage initialization with fallbacks and cleanup of removed categories
+  const isBannedProduct = (prod: Product) => {
+    const c = (prod.category || '').toLowerCase();
+    const n = (prod.name || '').toLowerCase();
+    if (isBannedCategory(c)) return true;
+    if (n.includes('kalkulator') || n.includes('citizen') || n.includes('buku tulis') || n.includes('buku gambar') || n.includes('pensil') || n.includes('penghapus') || n.includes('penggaris') || n.includes('tipe-x') || n.includes('pulpen') || n.includes('vase') || n.includes('pillow')) {
+      return true;
+    }
+    return false;
+  };
+
+  // LocalStorage initialization with fallbacks and cleanup of removed categories & products
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('mycashier_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        const cleaned = parsed.filter((p) => !isBanned(p.category));
+        const cleaned = parsed.filter((p) => !isBannedProduct(p));
         if (cleaned.length > 0) return cleaned;
       }
       return INITIAL_PRODUCTS;
@@ -107,7 +118,7 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = localStorage.getItem('mycashier_categories');
       if (saved) {
         const parsed: Category[] = JSON.parse(saved);
-        const cleaned = parsed.filter((c) => !isBanned(c.name));
+        const cleaned = parsed.filter((c) => !isBannedCategory(c.name));
         if (cleaned.length > 0) return cleaned;
       }
       return INITIAL_CATEGORIES;
