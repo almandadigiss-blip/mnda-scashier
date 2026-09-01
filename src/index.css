@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #805062;
+    --on-primary: #ffffff;
+    --primary-container: #f8bbd0;
+    --on-primary-container: #76485a;
+    --secondary-fixed: #e4e4cc;
+    --surface-variant: #d4e5ef;
+    --surface-container: #dff1fb;
+    --surface-container-high: #d9ebf5;
+    --surface-container-highest: #d4e5ef;
+    --tertiary-fixed: #f4dce4;
+    --tertiary-container: #ddc6ce;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom styles for POS */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0 auto;
+    padding: 10px;
+    background: white;
+    color: black;
+  }
+}

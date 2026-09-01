@@ -1,0 +1,6 @@
+{
+  "name": "MYCASHIER POS",
+  "description": "Aplikasi Kasir & Manajemen Toko Modern dengan POS interaktif, manajemen produk, stok inventaris, riwayat transaksi, dan laporan penjualan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
