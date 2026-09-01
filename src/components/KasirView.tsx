@@ -27,11 +27,13 @@ export const KasirView: React.FC = () => {
     currentCashier,
     cashiers,
     switchActiveCashier,
+    deleteCashier,
   } = usePOS();
 
   const [localSearch, setLocalSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('Semua Kategori');
   const [isSwitchCashierQuickOpen, setIsSwitchCashierQuickOpen] = useState(false);
+  const [cashierToDelete, setCashierToDelete] = useState<{ id: string; name: string; role: string } | null>(null);
 
   // Filter products by search and category
   const filteredProducts = products.filter((p) => {
@@ -288,22 +290,42 @@ export const KasirView: React.FC = () => {
                         switchActiveCashier(c.id);
                         setIsSwitchCashierQuickOpen(false);
                       }}
-                      className={`flex items-center gap-2 p-1.5 rounded-xl cursor-pointer text-xs transition-colors ${
+                      className={`group flex items-center justify-between p-1.5 rounded-xl cursor-pointer text-xs transition-colors ${
                         c.id === currentCashier.id
                           ? 'bg-[#f8bbd0]/40 font-bold text-[#76485a]'
                           : 'hover:bg-gray-50 text-[#0d1e25]'
                       }`}
                     >
-                      <img src={c.avatar} alt={c.name} className="w-5 h-5 rounded-full object-cover" />
-                      <span className="truncate flex-1">{c.name}</span>
-                      <span className="text-[10px] text-gray-500 font-normal">({c.role})</span>
-                      <span
-                        className={`text-[8px] font-bold px-1 py-0.2 rounded-sm ${
-                          c.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {c.isActive ? 'Aktif' : 'Nonaktif'}
-                      </span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img src={c.avatar} alt={c.name} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                        <span className="truncate">{c.name}</span>
+                        <span className="text-[10px] text-gray-500 font-normal shrink-0">({c.role})</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[8px] font-bold px-1 py-0.2 rounded-sm ${
+                            c.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {c.isActive ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (cashiers.length <= 1) {
+                              alert('Minimal harus ada 1 akun kasir dalam sistem.');
+                              return;
+                            }
+                            setCashierToDelete(c);
+                          }}
+                          disabled={cashiers.length <= 1}
+                          className="w-5 h-5 rounded flex items-center justify-center text-gray-400 hover:text-[#ba1a1a] hover:bg-red-50 transition-colors"
+                          title={`Hapus akun ${c.name}`}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">delete</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -595,6 +617,49 @@ export const KasirView: React.FC = () => {
               >
                 <span className="material-symbols-outlined text-[20px]">receipt_long</span>
                 Cetak Struk
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Cashier Confirmation Modal */}
+      {cashierToDelete && (
+        <div
+          id="modal-delete-cashier-kasir"
+          className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-red-100 flex flex-col gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#ba1a1a] flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-2xl">person_remove</span>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-base font-bold text-[#0d1e25]">Hapus Akun Kasir?</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Apakah Anda yakin ingin menghapus akun{' '}
+                <strong className="text-[#0d1e25]">{cashierToDelete.name}</strong> (
+                {cashierToDelete.role})?
+              </p>
+            </div>
+
+            <div className="flex gap-2.5 mt-1">
+              <button
+                type="button"
+                onClick={() => setCashierToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteCashier(cashierToDelete.id);
+                  setCashierToDelete(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#ba1a1a] hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                Hapus Akun
               </button>
             </div>
           </div>

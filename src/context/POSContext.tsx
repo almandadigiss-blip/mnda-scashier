@@ -84,11 +84,19 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
 
-  // LocalStorage initialization with fallbacks
+  const BANNED_CATEGORIES = ['alat tulis', 'buku', 'home decor'];
+  const isBanned = (catName: string) => BANNED_CATEGORIES.includes((catName || '').trim().toLowerCase());
+
+  // LocalStorage initialization with fallbacks and cleanup of removed categories
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('mycashier_products');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      if (saved) {
+        const parsed: Product[] = JSON.parse(saved);
+        const cleaned = parsed.filter((p) => !isBanned(p.category));
+        if (cleaned.length > 0) return cleaned;
+      }
+      return INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
@@ -97,7 +105,12 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
       const saved = localStorage.getItem('mycashier_categories');
-      return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
+      if (saved) {
+        const parsed: Category[] = JSON.parse(saved);
+        const cleaned = parsed.filter((c) => !isBanned(c.name));
+        if (cleaned.length > 0) return cleaned;
+      }
+      return INITIAL_CATEGORIES;
     } catch {
       return INITIAL_CATEGORIES;
     }
@@ -147,12 +160,12 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [cart, setCart] = useState<CartItem[]>([
-    { product: INITIAL_PRODUCTS[0], quantity: 2 },
-    { product: INITIAL_PRODUCTS[1], quantity: 3 },
+    { product: INITIAL_PRODUCTS[0], quantity: 1 },
+    { product: INITIAL_PRODUCTS[3], quantity: 1 },
   ]);
   const [cartDiscount, setCartDiscount] = useState<number>(0);
   const [cartPaymentMethod, setCartPaymentMethod] = useState<PaymentMethod>('Tunai');
-  const [cartAmountPaid, setCartAmountPaid] = useState<number>(20000);
+  const [cartAmountPaid, setCartAmountPaid] = useState<number>(750000);
   const [lastCompletedTransaction, setLastCompletedTransaction] = useState<Transaction | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 

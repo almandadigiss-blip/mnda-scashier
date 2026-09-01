@@ -12,11 +12,13 @@ export const Header: React.FC = () => {
     products,
     setCurrentTab,
     addCashier,
+    deleteCashier,
   } = usePOS();
 
   const [isCashierMenuOpen, setIsCashierMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAddCashierModalOpen, setIsAddCashierModalOpen] = useState(false);
+  const [cashierToDelete, setCashierToDelete] = useState<{ id: string; name: string; role: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const lowStockItems = products.filter((p) => p.stock <= (p.minStockAlert || 5));
@@ -26,6 +28,27 @@ export const Header: React.FC = () => {
     setIsCashierMenuOpen(false);
     setToastMessage(`Kasir aktif berhasil diganti ke: ${name}`);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleDeleteCashierClick = (e: React.MouseEvent, c: { id: string; name: string; role: string }) => {
+    e.stopPropagation();
+    if (cashiers.length <= 1) {
+      setToastMessage('Tidak dapat menghapus. Minimal harus ada 1 akun kasir aktif.');
+      setTimeout(() => setToastMessage(null), 3500);
+      return;
+    }
+    setCashierToDelete(c);
+  };
+
+  const handleConfirmDeleteCashier = () => {
+    if (!cashierToDelete) return;
+    const name = cashierToDelete.name;
+    const ok = deleteCashier(cashierToDelete.id);
+    setCashierToDelete(null);
+    if (ok) {
+      setToastMessage(`Akun kasir "${name}" berhasil dihapus.`);
+      setTimeout(() => setToastMessage(null), 3500);
+    }
   };
 
   return (
@@ -183,19 +206,19 @@ export const Header: React.FC = () => {
                 </div>
 
                 {/* Cashier Accounts List */}
-                <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+                <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-0.5">
                   {cashiers.map((cashier) => {
                     const isOperative = currentCashier.id === cashier.id;
                     return (
                       <div
                         key={cashier.id}
                         onClick={() => handleSelectCashier(cashier.id, cashier.name)}
-                        className={`flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer transition-all border ${
+                        className={`group flex items-center gap-2.5 p-2.5 rounded-2xl cursor-pointer transition-all border ${
                           isOperative
                             ? 'bg-[#f8bbd0]/35 border-[#805062]/40 shadow-xs'
                             : cashier.isActive
                             ? 'hover:bg-[#FDF5E6] border-transparent hover:border-gray-200'
-                            : 'opacity-65 hover:opacity-100 bg-gray-50/70 border-transparent hover:border-gray-200'
+                            : 'opacity-70 hover:opacity-100 bg-gray-50/70 border-transparent hover:border-gray-200'
                         }`}
                       >
                         {/* Avatar */}
@@ -218,7 +241,7 @@ export const Header: React.FC = () => {
                             <p className="text-xs font-bold text-[#0d1e25] truncate">{cashier.name}</p>
                             {isOperative && (
                               <span className="text-[9px] font-extrabold bg-[#805062] text-white px-1.5 py-0.2 rounded-full shrink-0">
-                                SEDANG AKTIF
+                                AKTIF
                               </span>
                             )}
                           </div>
@@ -235,21 +258,43 @@ export const Header: React.FC = () => {
                                   : 'text-gray-500 bg-gray-100'
                               }`}
                             >
-                              {cashier.isActive ? 'Aktif' : 'Tidak Aktif'}
+                              {cashier.isActive ? 'Aktif' : 'Nonaktif'}
                             </span>
                           </div>
                         </div>
 
-                        {/* Selection check */}
-                        {isOperative ? (
-                          <div className="w-6 h-6 rounded-full bg-[#805062] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                            <span className="material-symbols-outlined text-[16px]">check</span>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] font-bold text-[#805062] opacity-0 group-hover:opacity-100 hover:underline shrink-0">
-                            Pilih
-                          </span>
-                        )}
+                        {/* Actions: Delete Cashier Button & Selection */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Delete Account Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteCashierClick(e, cashier)}
+                            disabled={cashiers.length <= 1}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                              cashiers.length <= 1
+                                ? 'text-gray-300 cursor-not-allowed opacity-40'
+                                : 'text-gray-400 hover:text-[#ba1a1a] hover:bg-red-50'
+                            }`}
+                            title={
+                              cashiers.length <= 1
+                                ? 'Minimal harus ada 1 akun kasir'
+                                : `Hapus akun ${cashier.name}`
+                            }
+                          >
+                            <span className="material-symbols-outlined text-[17px]">delete</span>
+                          </button>
+
+                          {/* Selection indicator */}
+                          {isOperative ? (
+                            <div className="w-6 h-6 rounded-full bg-[#805062] text-white flex items-center justify-center shadow-2xs">
+                              <span className="material-symbols-outlined text-[15px]">check</span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-bold text-[#805062] opacity-0 group-hover:opacity-100 hover:underline px-1">
+                              Pilih
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -306,6 +351,46 @@ export const Header: React.FC = () => {
           }
         }}
       />
+
+      {/* Delete Cashier Confirmation Modal */}
+      {cashierToDelete && (
+        <div
+          id="modal-delete-cashier"
+          className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+        >
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-red-100 flex flex-col gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-[#ba1a1a] flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-2xl">person_remove</span>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-base font-bold text-[#0d1e25]">Hapus Akun Kasir?</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Apakah Anda yakin ingin menghapus akun{' '}
+                <strong className="text-[#0d1e25]">{cashierToDelete.name}</strong> (
+                {cashierToDelete.role})? Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+
+            <div className="flex gap-2.5 mt-1">
+              <button
+                type="button"
+                onClick={() => setCashierToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCashier}
+                className="flex-1 py-2.5 rounded-xl bg-[#ba1a1a] hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                Hapus Akun
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

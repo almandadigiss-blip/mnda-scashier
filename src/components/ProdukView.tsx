@@ -38,10 +38,10 @@ export const ProdukView: React.FC = () => {
     setFormData({
       name: '',
       sku: `PRD-${Math.floor(100 + Math.random() * 900)}`,
-      category: categories[0]?.name || 'Alat Tulis',
-      price: 10000,
+      category: categories[0]?.name || 'Pakaian',
+      price: 50000,
       stock: 20,
-      image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80',
+      image: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=600&auto=format&fit=crop&q=80',
       description: '',
       minStockAlert: 5,
     });
