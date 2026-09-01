@@ -24,10 +24,14 @@ export const KasirView: React.FC = () => {
     lastCompletedTransaction,
     isSuccessModalOpen,
     setIsSuccessModalOpen,
+    currentCashier,
+    cashiers,
+    switchActiveCashier,
   } = usePOS();
 
   const [localSearch, setLocalSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('Semua Kategori');
+  const [isSwitchCashierQuickOpen, setIsSwitchCashierQuickOpen] = useState(false);
 
   // Filter products by search and category
   const filteredProducts = products.filter((p) => {
@@ -207,28 +211,105 @@ export const KasirView: React.FC = () => {
         className="w-[390px] xl:w-[420px] shrink-0 bg-white shadow-[-4px_0_24px_rgba(0,0,0,0.04)] z-20 flex flex-col h-full border-l border-[#e4e4cc]/60"
       >
         {/* Cart Header */}
-        <div className="p-5 flex items-center justify-between border-b border-[#e4e4cc]/40 bg-white">
-          <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-[#805062] text-[26px]">
-              shopping_cart
-            </span>
-            <h2 className="font-bold text-xl text-[#0d1e25]">Pesanan Baru</h2>
-            {cart.length > 0 && (
-              <span className="bg-[#f8bbd0] text-[#76485a] text-xs font-bold px-2 py-0.5 rounded-full">
-                {cart.reduce((s, i) => s + i.quantity, 0)}
+        <div className="p-4 sm:p-5 flex flex-col gap-2 border-b border-[#e4e4cc]/40 bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-[#805062] text-[26px]">
+                shopping_cart
               </span>
+              <h2 className="font-bold text-xl text-[#0d1e25]">Pesanan Baru</h2>
+              {cart.length > 0 && (
+                <span className="bg-[#f8bbd0] text-[#76485a] text-xs font-bold px-2 py-0.5 rounded-full">
+                  {cart.reduce((s, i) => s + i.quantity, 0)}
+                </span>
+              )}
+            </div>
+            {cart.length > 0 && (
+              <button
+                id="btn-clear-cart"
+                onClick={clearCart}
+                className="w-9 h-9 rounded-full bg-[#FDF5E6] text-[#ba1a1a] hover:bg-[#ffdad6] flex items-center justify-center transition-colors"
+                title="Kosongkan Keranjang"
+              >
+                <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+              </button>
             )}
           </div>
-          {cart.length > 0 && (
-            <button
-              id="btn-clear-cart"
-              onClick={clearCart}
-              className="w-9 h-9 rounded-full bg-[#FDF5E6] text-[#ba1a1a] hover:bg-[#ffdad6] flex items-center justify-center transition-colors"
-              title="Kosongkan Keranjang"
+
+          {/* Active Cashier Row & Quick Switcher */}
+          <div className="relative">
+            <div
+              onClick={() => setIsSwitchCashierQuickOpen(!isSwitchCashierQuickOpen)}
+              className="flex items-center justify-between p-2 bg-[#f4faff] hover:bg-[#eaf4fb] border border-[#dff1fb] rounded-xl cursor-pointer transition-colors"
+              title="Klik untuk ganti kasir"
             >
-              <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
-            </button>
-          )}
+              <div className="flex items-center gap-2 min-w-0">
+                <img
+                  src={currentCashier.avatar}
+                  alt={currentCashier.name}
+                  className="w-6 h-6 rounded-full object-cover ring-1 ring-[#805062]"
+                />
+                <div className="flex items-center gap-1.5 min-w-0 text-xs">
+                  <span className="font-bold text-[#0d1e25] truncate">{currentCashier.name}</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-[#805062] font-semibold truncate text-[11px]">{currentCashier.role}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
+                  Aktif
+                </span>
+                <span className="material-symbols-outlined text-[16px] text-gray-400">
+                  expand_more
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Switch Dropdown */}
+            {isSwitchCashierQuickOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#dff1fb] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in">
+                <div className="px-2 py-1 border-b border-gray-100 flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-gray-500">Pilih Kasir Bertugas:</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSwitchCashierQuickOpen(false);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 text-xs"
+                  >
+                    Tutup
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                  {cashiers.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        switchActiveCashier(c.id);
+                        setIsSwitchCashierQuickOpen(false);
+                      }}
+                      className={`flex items-center gap-2 p-1.5 rounded-xl cursor-pointer text-xs transition-colors ${
+                        c.id === currentCashier.id
+                          ? 'bg-[#f8bbd0]/40 font-bold text-[#76485a]'
+                          : 'hover:bg-gray-50 text-[#0d1e25]'
+                      }`}
+                    >
+                      <img src={c.avatar} alt={c.name} className="w-5 h-5 rounded-full object-cover" />
+                      <span className="truncate flex-1">{c.name}</span>
+                      <span className="text-[10px] text-gray-500 font-normal">({c.role})</span>
+                      <span
+                        className={`text-[8px] font-bold px-1 py-0.2 rounded-sm ${
+                          c.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {c.isActive ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Cart Items List */}

@@ -27,6 +27,11 @@ interface POSContextType {
   currentCashier: CashierProfile;
   setCurrentCashier: (cashier: CashierProfile) => void;
   cashiers: CashierProfile[];
+  addCashier: (cashier: Omit<CashierProfile, 'id'>) => CashierProfile;
+  updateCashier: (id: string, updated: Partial<CashierProfile>) => void;
+  deleteCashier: (id: string) => boolean;
+  toggleCashierStatus: (id: string) => void;
+  switchActiveCashier: (id: string) => boolean;
   settings: StoreSettings;
   updateSettings: (newSettings: Partial<StoreSettings>) => void;
   searchQuery: string;
@@ -116,7 +121,31 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   });
 
-  const [currentCashier, setCurrentCashier] = useState<CashierProfile>(CASHIER_PROFILES[0]);
+  const [cashiers, setCashiers] = useState<CashierProfile[]>(() => {
+    try {
+      const saved = localStorage.getItem('mycashier_cashiers');
+      return saved ? JSON.parse(saved) : CASHIER_PROFILES;
+    } catch {
+      return CASHIER_PROFILES;
+    }
+  });
+
+  const [currentCashier, setCurrentCashier] = useState<CashierProfile>(() => {
+    try {
+      const saved = localStorage.getItem('mycashier_current_cashier');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const match = (JSON.parse(localStorage.getItem('mycashier_cashiers') || '[]') as CashierProfile[]).find(
+          (c) => c.id === parsed.id
+        );
+        if (match) return match;
+      }
+      return CASHIER_PROFILES[0];
+    } catch {
+      return CASHIER_PROFILES[0];
+    }
+  });
+
   const [cart, setCart] = useState<CartItem[]>([
     { product: INITIAL_PRODUCTS[0], quantity: 2 },
     { product: INITIAL_PRODUCTS[1], quantity: 3 },
@@ -143,6 +172,14 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     localStorage.setItem('mycashier_settings', JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem('mycashier_cashiers', JSON.stringify(cashiers));
+  }, [cashiers]);
+
+  useEffect(() => {
+    localStorage.setItem('mycashier_current_cashier', JSON.stringify(currentCashier));
+  }, [currentCashier]);
 
   // Cart calculations
   const cartSubtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -301,6 +338,86 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCategories((prev) => prev.filter((c) => c.id !== id));
   };
 
+  // Cashier Management CRUD & Switcher
+  const addCashier = (newCashierData: Omit<CashierProfile, 'id'>): CashierProfile => {
+    const createdCashier: CashierProfile = {
+      ...newCashierData,
+      id: `csh-${Date.now()}`,
+    };
+    setCashiers((prev) => [...prev, createdCashier]);
+    return createdCashier;
+  };
+
+  const updateCashier = (id: string, updated: Partial<CashierProfile>) => {
+    setCashiers((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const merged = { ...c, ...updated };
+          if (currentCashier.id === id) {
+            setCurrentCashier(merged);
+          }
+          return merged;
+        }
+        return c;
+      })
+    );
+  };
+
+  const deleteCashier = (id: string): boolean => {
+    if (cashiers.length <= 1) {
+      alert('Minimal harus ada satu akun kasir di dalam sistem.');
+      return false;
+    }
+    const remaining = cashiers.filter((c) => c.id !== id);
+    setCashiers(remaining);
+    if (currentCashier.id === id) {
+      const activeFallback = remaining.find((c) => c.isActive) || remaining[0];
+      setCurrentCashier(activeFallback);
+    }
+    return true;
+  };
+
+  const toggleCashierStatus = (id: string) => {
+    setCashiers((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const nextStatus = !c.isActive;
+          const updated = { ...c, isActive: nextStatus };
+          // If deactivated while active operasional, switch to another active cashier if available
+          if (currentCashier.id === id) {
+            if (!nextStatus) {
+              const otherActive = prev.find((item) => item.id !== id && item.isActive);
+              if (otherActive) {
+                setCurrentCashier(otherActive);
+              } else {
+                setCurrentCashier(updated);
+              }
+            } else {
+              setCurrentCashier(updated);
+            }
+          }
+          return updated;
+        }
+        return c;
+      })
+    );
+  };
+
+  const switchActiveCashier = (id: string): boolean => {
+    const target = cashiers.find((c) => c.id === id);
+    if (!target) return false;
+
+    // If cashier is inactive, activate them automatically or switch directly
+    if (!target.isActive) {
+      const activated = { ...target, isActive: true };
+      setCashiers((prev) => prev.map((c) => (c.id === id ? activated : c)));
+      setCurrentCashier(activated);
+    } else {
+      setCurrentCashier(target);
+    }
+    return true;
+  };
+
   const updateSettings = (newSettings: Partial<StoreSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
@@ -310,6 +427,8 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCategories(INITIAL_CATEGORIES);
     setTransactions(INITIAL_TRANSACTIONS);
     setSettings(STORE_SETTINGS);
+    setCashiers(CASHIER_PROFILES);
+    setCurrentCashier(CASHIER_PROFILES[0]);
     setCart([
       { product: INITIAL_PRODUCTS[0], quantity: 2 },
       { product: INITIAL_PRODUCTS[1], quantity: 3 },
@@ -330,7 +449,12 @@ export const POSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         cart,
         currentCashier,
         setCurrentCashier,
-        cashiers: CASHIER_PROFILES,
+        cashiers,
+        addCashier,
+        updateCashier,
+        deleteCashier,
+        toggleCashierStatus,
+        switchActiveCashier,
         settings,
         updateSettings,
         searchQuery,

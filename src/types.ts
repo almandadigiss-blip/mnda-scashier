@@ -67,8 +67,11 @@ export interface Transaction {
 export interface CashierProfile {
   id: string;
   name: string;
-  role: 'Cashier' | 'Manager' | 'Admin';
+  role: string;
   avatar: string;
+  isActive: boolean;
+  phone?: string;
+  email?: string;
 }
 
 export interface StoreSettings {
